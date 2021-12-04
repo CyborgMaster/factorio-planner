@@ -26,38 +26,45 @@ def dependencies(recipes, output, count, inputs)
   raise "no recipe for #{output}!" if recipe.nil?
   $log.debug "Recipe #{output}: #{recipe}"
 
+  build = { name: output, amount: count }
+  build[:recipe] = recipe[:ingredients].to_h { |i| [i[:name], i[:amount]] }
+  build[:recipe][:time] = recipe[:energy]
+  builds = [build]
+
   product = recipe[:products].find { |p| p[:name] = output }
   raise "no product for #{output}!" if product.nil?
   raise "proability not 1 for #{output}" if product[:probability] != 1
   $log.debug "Product #{output}: #{product}"
+  build[:recipe][:amount] = product[:amount]
   count /= product[:amount].to_f
 
-  ingredients = recipe[:ingredients].to_h { |i| [i[:name], i[:amount] * count] }
+  build[:machines] = recipe[:energy] * count
+
+  ingredients = recipe[:ingredients]
+    .map { |i| { name: i[:name], amount: i[:amount] * count } }
   $log.debug "Ingredients #{output}: #{ingredients}"
 
-  ingredients.reject! do |name, amount|
-    if inputs[name]
-      inputs[name] += amount
+  ingredients.reject! do |i|
+    if inputs[i[:name]]
+      inputs[i[:name]] += i[:amount]
       true
     else
       false
     end
   end
 
-  nested = ingredients.map do |name, amount|
-    dependencies recipes, name, amount, inputs.keys
+  nested = ingredients.map do |i|
+    dependencies recipes, i[:name], i[:amount], inputs.keys
   end
   nested.each do |nested_ingredients, nested_inputs|
-    ingredients.merge!(nested_ingredients) do |k, a, b|
-      a + b
-    end
+    builds = nested_ingredients + builds
     inputs = inputs.merge(nested_inputs) do |k, a, b|
       a + b
     end
   end
 
-  $log.info "Finish #{output}, ingredients: #{ingredients}, inputs: #{inputs}"
-  return ingredients, inputs
+  $log.info "Finish #{output}, nested: #{ingredients}, inputs: #{inputs}"
+  return builds, inputs
 end
 
 class PlanCLI < Thor
@@ -93,7 +100,7 @@ class PlanCLI < Thor
   desc 'test', 'dev test'
   def test
     $log.debug 'Start Test'
-    puts dependencies recipes, 'logistic-science-pack', 2, %w[iron-plate copper-plate]
+    puts dependencies recipes, 'logistic-science-pack', 1, %w[iron-plate copper-plate]
     # puts recipes['logistic-science-pack']
     # puts recipes['electronic-circuit']
     # puts recipes.keys.sort
