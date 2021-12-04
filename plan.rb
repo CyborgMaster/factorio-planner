@@ -20,13 +20,14 @@ def dependencies(recipes, output, count, inputs)
     inputs = inputs.dup
   end
   return {}, { output => count } if inputs[output]
+
   recipe = recipes[output]
   raise "no recipe for #{output}!" if recipe.nil?
   $log.debug "Recipe #{output}: #{recipe}"
+
   build = { build: output, amount: count }
   build[:recipe] = recipe[:ingredients].to_h { |i| [i[:name], i[:amount]] }
   build[:recipe][:time] = recipe[:energy]
-  builds = [build]
 
   product = recipe[:products].find { |p| p[:name] = output }
   raise "no product for #{output}!" if product.nil?
@@ -53,6 +54,8 @@ def dependencies(recipes, output, count, inputs)
   nested = ingredients.map do |i|
     dependencies recipes, i[:name], i[:amount], inputs.keys
   end
+
+  builds = [build]
   nested.each do |nested_ingredients, nested_inputs|
     builds = nested_ingredients + builds
     inputs = inputs.merge(nested_inputs) do |k, a, b|
@@ -61,7 +64,7 @@ def dependencies(recipes, output, count, inputs)
   end
 
   $log.info "Finish #{output}, nested: #{ingredients}, inputs: #{inputs}"
-  return builds, inputs
+  return builds, inputs.reject { |i, c| c == 0 }
 end
 
 def optimize(plan)
@@ -124,7 +127,8 @@ class PlanCLI < Thor
 
   desc 'line', 'plan a line to build an item at a certain count per second'
   def line(item, rate=1)
-    plan, input =  dependencies recipes, item, rate.to_f, %w[iron-plate copper-plate coal stone-brick steel-plate]
+    plan, input =  dependencies recipes, item, rate.to_f,
+      %w[iron-plate copper-plate coal stone-brick steel-plate]
     puts optimize(plan), input
   end
 
