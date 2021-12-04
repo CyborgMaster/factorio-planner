@@ -25,8 +25,7 @@ def dependencies(recipes, output, count, inputs)
   recipe = recipes[output]
   raise "no recipe for #{output}!" if recipe.nil?
   $log.debug "Recipe #{output}: #{recipe}"
-
-  build = { name: output, amount: count }
+  build = { build: output, amount: count }
   build[:recipe] = recipe[:ingredients].to_h { |i| [i[:name], i[:amount]] }
   build[:recipe][:time] = recipe[:energy]
   builds = [build]
@@ -67,6 +66,29 @@ def dependencies(recipes, output, count, inputs)
   return builds, inputs
 end
 
+def optimize(plan)
+  has_capacity = {}
+  plan.reject do |step|
+    next unless step[:machines] < 1
+    build = step[:build]
+    h = has_capacity[build]
+    if h.nil?
+      has_capacity[build] = step
+      next
+    end
+    if h[:machines] + step[:machines] < 1
+      h[:amount] += step[:amount]
+      h[:machines] += step[:machines]
+      $log.info "merging steps for #{step[:build]}"
+      next true
+    end
+    if step[:machines] < h[:machines]
+      has_capcity[build] = step[:machines]
+    end
+    false
+  end
+end
+
 class PlanCLI < Thor
   class_option :recipes_file, default: 'recipes.json'
 
@@ -100,7 +122,8 @@ class PlanCLI < Thor
   desc 'test', 'dev test'
   def test
     $log.debug 'Start Test'
-    puts dependencies recipes, 'logistic-science-pack', 1, %w[iron-plate copper-plate]
+    plan, input =  dependencies recipes, 'logistic-science-pack', 1, %w[iron-plate copper-plate]
+    puts optimize(plan), input
     # puts recipes['logistic-science-pack']
     # puts recipes['electronic-circuit']
     # puts recipes.keys.sort
@@ -108,7 +131,7 @@ class PlanCLI < Thor
 
   no_commands do
     def recipes
-      @recipes ||= read_recipes options[:recipes_file]
+      read_recipes options[:recipes_file]
     end
   end
 end
