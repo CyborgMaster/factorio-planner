@@ -12,8 +12,6 @@ def read_recipes(file)
   JSON.load_file(file, symbolize_names: true).to_h { |r| [r[:name], r] }
 end
 
-# TODO: deal with mutliple output recipes, such as iron sticks and cables
-
 def dependencies(recipes, output, count, inputs)
   $log.debug "Start #{output}"
   if inputs.is_a? Array
