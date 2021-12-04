@@ -119,6 +119,17 @@ class PlanCLI < Thor
     puts recipes[item]
   end
 
+  desc 'all-items', 'print all items'
+  def all_items
+    puts recipes.keys
+  end
+
+  desc 'line', 'plan a line to build an item at a certain count per second'
+  def line(item, rate=1)
+    plan, input =  dependencies recipes, item, rate.to_f, %w[iron-plate copper-plate coal stone-brick steel-plate]
+    puts optimize(plan), input
+  end
+
   desc 'test', 'dev test'
   def test
     $log.debug 'Start Test'
