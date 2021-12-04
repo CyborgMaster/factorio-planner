@@ -76,7 +76,7 @@ def optimize(plan)
       has_capacity[build] = step
       next
     end
-    if h[:machines] + step[:machines] < 1
+    if h[:machines] + step[:machines] <= 1
       h[:amount] += step[:amount]
       h[:machines] += step[:machines]
       $log.info "merging steps for #{step[:build]}"
