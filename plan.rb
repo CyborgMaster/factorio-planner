@@ -8,6 +8,10 @@ require 'json'
 
 $log = nil
 
+$replace_recipes = {
+  'electronic-circuit' => 'electronic-circuit-stone',
+}
+
 def read_recipes(file)
   JSON.load_file(file, symbolize_names: true).to_h { |r| [r[:name], r] }
 end
@@ -21,7 +25,9 @@ def dependencies(recipes, output, count, inputs)
   end
   return {}, { output => count } if inputs[output]
 
-  recipe = recipes[output]
+  recipe_name = output
+  recipe_name = $replace_recipes[recipe_name] if $replace_recipes.key? recipe_name
+  recipe = recipes[recipe_name]
   raise "no recipe for #{output}!" if recipe.nil?
   $log.debug "Recipe #{output}: #{recipe}"
 
@@ -128,14 +134,23 @@ class PlanCLI < Thor
   desc 'line', 'plan a line to build an item at a certain count per second'
   def line(item, rate=1)
     plan, input =  dependencies recipes, item, rate.to_f,
-      %w[iron-plate copper-plate coal stone-brick steel-plate]
+      %w[
+        iron-plate
+        copper-plate
+        coal
+        stone-brick
+        steel-plate
+        plastic-bar
+        sulfur
+      ]
     puts optimize(plan), input
   end
 
   desc 'test', 'dev test'
   def test
     $log.debug 'Start Test'
-    plan, input =  dependencies recipes, 'logistic-science-pack', 1, %w[iron-plate copper-plate]
+    plan, input =  dependencies recipes, 'logistic-science-pack', 1,
+                                %w[iron-plate copper-plate plastic-bar]
     puts optimize(plan), input
     # puts recipes['logistic-science-pack']
     # puts recipes['electronic-circuit']
