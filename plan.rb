@@ -10,6 +10,7 @@ $log = nil
 
 $replace_recipes = {
   'electronic-circuit' => 'electronic-circuit-stone',
+  'sand' => 'se-pulverised-sand',
 }
 
 def read_recipes(file)
@@ -142,6 +143,8 @@ class PlanCLI < Thor
         steel-plate
         plastic-bar
         sulfur
+        stone
+        water
       ]
     puts optimize(plan), input
   end
