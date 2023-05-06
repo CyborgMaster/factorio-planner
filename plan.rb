@@ -132,7 +132,7 @@ class PlanCLI < Thor
     puts recipes.keys
   end
 
-  desc 'line', 'plan a line to build an item at a certain count per second'
+  desc 'line ITEM [RATE]', 'plan a line to build ITEM at a certain RATE per second'
   def line(item, rate=1)
     plan, input =  dependencies recipes, item, rate.to_f,
       %w[
